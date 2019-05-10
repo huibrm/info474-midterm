@@ -240,7 +240,7 @@
                 toolTip.transition()
                   .duration(200)
                   .style("opacity", .9)
-                toolTip.html("Season: " + d.Year + "<br/>" + "Episodes: "+ d.Episodes + "<br/>" + "Avg. Viewers (mill): "+ d["Avg. Viewers (mil)"] + "<br/>" + "Viewers (mill): "+ d["Viewers (mil)"] )
+                toolTip.html("Season: " + d.Year + "<br/>" + "Episodes: "+ d.Episodes + "<br/>" + "Avg. Viewers (mill): "+ d["Avg. Viewers (mil)"] + "<br/>" + "Most Watched Episodes: "+ d["Most watched episode"] + "<br/>" +"Viewers (mill): "+ d["Viewers (mil)"] )
                   .style("left", (d3.event.pageX) + "px")
                   .style("top", (d3.event.pageY - 28) + "px");
               })
