@@ -1,12 +1,11 @@
 (function() {
     let data = ""; // keep data in global scope
     let svgContainer = ""; // keep SVG reference in global scope
-
+    let trendLine = "";
   
     // load data and make scatter plot after window loads
     window.onload = function() {
       // TODO: use d3 select, append, and attr to append a 500x500 SVG to body
-      svgLegend = d3.select('svg').selectAll(".legend")
       svgContainer = d3.select('body').append('svg')
         .attr('width', 800)
         .attr('height', 500);
@@ -14,7 +13,9 @@
       svgContainer.append('text')
         .attr('x', 150)
         .attr('y', 20)
-        .text('Average Viewship By Season');
+        .text('Average Viewship By Season')
+        .style("font-size", "25px");
+
   
       // TODO: use d3.csv to load in Admission Predict data and then call the
       // makeScatterPlot function and pass it the data
@@ -33,6 +34,8 @@
 
       // get an array of gre scores and an array of chance of admit
         let avgViewers = data.map((row) => parseInt(row['Avg. Viewers (mil)']));
+        let viewers = data.map((row) => parseInt(row['Viewers (mil)']));
+
         console.log(avgViewers)
         let year = data.map((row) => parseInt(row['Year']));
         console.log(year)
@@ -45,33 +48,60 @@
        // TODO: go to plotData function and fill it out
         plotData(mapFunctions,c);
 
-        legendVals = d3.set(data.map(function(d) {return d.Data})).values()
         genderLegend(c)
 
-        let total = 0;
+        let average = getAverage(avgViewers)
+        
+        trendLine = svgContainer.selectAll('.trendLine')
+            .data(data)
+            .enter()
+            .append('line')
+                .attr('x1', mapFunctions.xScale(1989.35))
+                .attr("y1", mapFunctions.yScale(13.5))
+                .attr("x2",mapFunctions.xScale(2015))
+                .attr("y2", mapFunctions.yScale(13.5))
+                .attr('stroke', 'black')
+                .attr('stroke-width', 2)
+                .style("opacity", 0.02)
+        
+           
+        svgContainer.selectAll(".textline")        
+        .data(data)
+        .enter()
+        .append("text")
+            .attr("class","label")
+            .attr("x", mapFunctions.xScale(1990.5))
+            .attr("y", mapFunctions.yScale(14))
+            // .attr("dx", ".75em")
+            .style('text-anchor', "middle")
+            .text("13.5")
+            .style("opacity", 0.05)
+            .style("font-size", "25px")
 
-        // note that incrementing total is done within the for loop
-        for(let i = 0, l = avgViewers.length; i < l; total += avgViewers[i], i++);
-  
-        let average = total / avgViewers.length;
+            
+ 
 
-        console.log("AVERAGE: " + average)
-        let trendLine = svgContainer.selectAll('.trendLine')
-      .data(data)
-      .enter()
-      .append('line')
-        .attr('x1', mapFunctions.xScale(1989.35))
-        .attr("y1", mapFunctions.yScale(13.5))
-  			.attr("x2",mapFunctions.xScale(2015))
-  			.attr("y2", mapFunctions.yScale(13.5))
-        .attr('stroke', 'black')
-        .attr('stroke-width', 2);
 
     
         // // plot the trend line using gre scores, admit rates, axes limits, and
         // // scaling + mapping functions
         // plotTrendLine(greScores, admissionRates, axesLimits, mapFunctions);
     
+      }
+
+      function getAverage(feature) {
+        let total = 0;
+
+        // note that incrementing total is done within the for loop
+        // for(let i = 0, l = feature.length; i < l; total += feature[i], i++);
+  
+        // let average = total / feature.length;
+
+        average = d3.mean(feature)
+        console.log("AVERAGE: " + average)
+
+        return average
+          
       }
       function findMinMax(year, avgViewers) {
 
@@ -125,7 +155,8 @@
         // See here for more details:
         // https://www.tutorialsteacher.com/d3js/axes-in-d3
         let xAxis = d3.axisBottom()
-          .scale(xScale);
+          .scale(xScale)
+          .tickFormat(d3.format("d"))
     
         // TODO: use d3 append, attr, and call to append a "g" element to the svgContainer
         // variable and assign it a 'transform' attribute of 'translate(0, 450)' then
@@ -135,9 +166,11 @@
           .call(xAxis);
     
         svgContainer.append('text')
-          .attr('x', 200)
-          .attr('y', 500)
-          .text('Year');
+          .attr('x', 350)
+          .attr('y', 490)
+          .text('Year')
+          .style("font-size", "15px");
+
     
         // return Chance of Admit from a row of data
         let yValue = function(d) { return +d["Avg. Viewers (mil)"]}
@@ -163,8 +196,10 @@
           .call(yAxis);
     
         svgContainer.append('text')
-          .attr('transform', 'translate(15, 300)rotate(-90)')
-          .text('Average Viewers (in millions)');
+          .attr('transform', 'translate(15, 350)rotate(-90)')
+          .text('Average Viewers (in millions)')
+          .style("font-size", "15px");
+
         // return mapping and scaling functions
         return {
           x: xMap,
@@ -189,7 +224,11 @@
         // 'fill' -> #4286f4
         // See here for more details:
         // https://www.tutorialsteacher.com/d3js/data-binding-in-d3js
-        svgContainer.selectAll('rect')
+        toolTip = d3.select("body").append("div")
+        .attr("class", "tooltip")
+        .style("opacity", 0);
+        
+        let rect = svgContainer.selectAll('rect')
           .data(data)
           .enter()
           .append('rect')
@@ -197,7 +236,20 @@
             .attr('y', yMap)
             .attr('width', 23)
             .attr('height', (d) => 450 - yMap(d))
-            .attr("fill",function(d){ return c(d.Data); })
+            .attr("fill",function(d){ return c(d.Data); }).on("mouseover", (d) => {
+                toolTip.transition()
+                  .duration(200)
+                  .style("opacity", .9)
+                toolTip.html("Season: " + d.Year + "<br/>" + "Episodes: "+ d.Episodes + "<br/>" + "Avg. Viewers (mill): "+ d["Avg. Viewers (mil)"] + "<br/>" + "Viewers (mill): "+ d["Viewers (mil)"] )
+                  .style("left", (d3.event.pageX) + "px")
+                  .style("top", (d3.event.pageY - 28) + "px");
+              })
+              .on("mouseout", (d) => {
+                toolTip.transition()
+                  .duration(500)
+                  .style("opacity", 0);
+              });
+
    
         svgContainer.selectAll(".text")        
             .data(data)
@@ -209,6 +261,8 @@
                 // .attr("dx", ".75em")
                 .style('text-anchor', "middle")
                 .text(function(d) { return d["Avg. Viewers (mil)"]; }); 
+
+
       }
 
       function genderLegend(c) {
@@ -223,17 +277,17 @@
             });
       
         legend.append("rect")
-            .attr("x",270)
-            .attr("y",9)
+            .attr("x",80)
+            .attr("y",90)
             .attr("width",50)
             .attr("height",18)
             .style("fill",c);
       
         legend.append("text")
-            .attr("x",250)
-            .attr("y",18)
+            .attr("x",20)
+            .attr("y",100)
             .attr("dy",".35em")
-            .style("text-anchor","end")
+            // .style("text-anchor","end")
             .text(function(d) {
               return d.charAt(0).toUpperCase()+d.slice(1);
             });
